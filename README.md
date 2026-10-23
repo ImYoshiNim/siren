@@ -48,17 +48,12 @@ You need [Node.js](https://nodejs.org) 20.6 or newer.
 
 1. Push this folder to a GitHub repo and import it at [vercel.com/new](https://vercel.com/new). Alternatively, run `npx vercel` from this folder.
 2. In the Vercel project, go to **Settings → Environment Variables** and add the same `PUSHER_*` values. **Vercel doesn't read your `.env` file**, so they have to be entered there.
-3. Set `SIREN_SECRET` to a password you choose. Without one, anyone who finds the URL can set off the alarm.
+3. Set `SIREN_SECRET` to a password you choose. `/button` will ask for it before showing the button. Without one, anyone who finds the URL can set off the alarm.
 4. Redeploy so the new variables take effect.
 
-### If you set `SIREN_SECRET`
+### The `/button` password
 
-Open each page once with the key in the URL. The browser remembers it after that:
-
-```
-https://your-app.vercel.app/?key=YOUR_SECRET
-https://your-app.vercel.app/button?key=YOUR_SECRET
-```
+When `SIREN_SECRET` is set, `/button` shows a password screen. Each browser remembers the password after the first successful login. If you change the password, everyone is asked to log in again the next time they press the button. The home page never asks for the password, because it can only listen for the alarm, not set it off.
 
 ---
 
@@ -92,7 +87,7 @@ The extension works on `localhost` and `*.vercel.app`. If you use a custom domai
 |---|---|
 | No sound when the alarm fires | Click the home page once to arm it, and check the tab isn't muted. |
 | "Pusher is not configured on the server" | The `PUSHER_*` variables are missing. Check `.env` locally, or the Vercel environment variables (then redeploy). |
-| "Wrong or missing key" | `SIREN_SECRET` is set. Open the page once with `?key=YOUR_SECRET`. |
+| "Wrong password" on `/button` | Enter the value of `SIREN_SECRET`. Locally that's in `.env`; on Vercel it's in the environment variables. |
 | Siren tab doesn't come to the front | Install the helper extension. If another app (such as a game) has focus, Windows may only flash the browser in the taskbar. |
 | Reloaded the home page and the alarm shows off | Pusher only remembers the last state for 30 minutes. Press the button again. |
 
@@ -100,7 +95,7 @@ The extension works on `localhost` and `*.vercel.app`. If you use a custom domai
 
 ```
 public/       index.html (home), button.html, siren.js (shared), default.mp3
-api/          Vercel functions: trigger, stop, config
+api/          Vercel functions: trigger, stop, login, config
 extension/    Siren Helper browser extension
 dev-server.js Local server for `npm start` (not used on Vercel)
 ```

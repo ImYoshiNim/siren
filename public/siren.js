@@ -1,25 +1,36 @@
-// Shared by the home and button pages: Pusher connection + trigger/stop calls.
+// Shared by the home and button pages: Pusher connection + password + trigger/stop calls.
 
-// Opening a page with ?key=... once remembers the key in this browser.
-const urlKey = new URLSearchParams(location.search).get('key');
-try { if (urlKey) localStorage.setItem('sirenKey', urlKey); } catch {}
-function sirenKey() {
-  try { return urlKey || localStorage.getItem('sirenKey') || ''; } catch { return urlKey || ''; }
+// The /button password, remembered in this browser after a successful login.
+const savedPassword = {
+  get() { try { return localStorage.getItem('sirenKey') || ''; } catch { return ''; } },
+  set(v) { try { v ? localStorage.setItem('sirenKey', v) : localStorage.removeItem('sirenKey'); } catch {} },
+};
+
+async function getConfig() {
+  return (await fetch('/api/config')).json();
 }
 
+// Resolves true if the password is accepted (or none is required).
+async function checkPassword(password) {
+  const r = await fetch('/api/login', { method: 'POST', headers: { 'X-Siren-Key': password } });
+  return r.ok;
+}
+
+// Resolves false if the server rejected the saved password.
 async function sendAlarm(on) {
   const r = await fetch(on ? '/api/trigger' : '/api/stop', {
     method: 'POST',
-    headers: { 'X-Siren-Key': sirenKey() },
+    headers: { 'X-Siren-Key': savedPassword.get() },
   });
+  if (r.status === 401) return false;
   if (!r.ok) alert((await r.json().catch(() => ({}))).message || 'Request failed');
+  return true;
 }
 
 // Calls onAlarm(true|false) on every state change, onStatus(text, connected) on connection changes.
 async function connectSiren({ onAlarm, onStatus }) {
-  const config = await (await fetch('/api/config')).json();
+  const config = await getConfig();
   if (!config.key) return onStatus('Pusher is not configured on the server', false);
-  if (config.needsKey && !sirenKey()) onStatus('Missing key — open this page with ?key=…', false);
 
   const pusher = new Pusher(config.key, { cluster: config.cluster });
   const channel = pusher.subscribe(config.channel);

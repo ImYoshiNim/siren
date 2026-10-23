@@ -23,20 +23,40 @@
     #big:active { transform: translateY(8px); box-shadow: 0 2px 0 #7f1414, 0 4px 10px rgba(0,0,0,.3); }
     #big.on { background: #555; box-shadow: 0 10px 0 #2a2a2a, 0 14px 30px rgba(0,0,0,.3); }
     #status { color: var(--muted); }
+    .hidden { display: none !important; }
+    #login { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; text-align: center; }
+    #login h1 { margin: 0; font-size: 24px; }
+    #login input, #login button {
+      font: inherit; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--muted);
+      background: transparent; color: var(--fg);
+    }
+    #login button { background: var(--accent); border: 0; color: #fff; font-weight: 700; cursor: pointer; }
+    #loginError { color: var(--accent); min-height: 1.5em; margin: 0; }
   </style>
 </head>
 <body>
-  <button id="big">PRESS</button>
-  <div id="status">Connecting…</div>
+  <form id="login" class="hidden">
+    <h1>Password</h1>
+    <input id="password" type="password" autocomplete="current-password" placeholder="Enter password" required>
+    <button type="submit">Unlock</button>
+    <p id="loginError"></p>
+  </form>
+
+  <button id="big" class="hidden">PRESS</button>
+  <div id="status" class="hidden">Connecting…</div>
 
   <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.4.0/dist/web/pusher.min.js"></script>
   <script src="/siren.js"></script>
   <script>
-    const big = document.getElementById('big');
-    const status = document.getElementById('status');
+    const $ = (id) => document.getElementById(id);
+    const big = $('big');
+    const status = $('status');
     let alarm = false;
+    let connected = false;
 
-    big.onclick = () => sendAlarm(!alarm);
+    big.onclick = async () => {
+      if (!(await sendAlarm(!alarm))) showLogin('Password changed — please log in again.');
+    };
 
     function render() {
       big.classList.toggle('on', alarm);
@@ -44,9 +64,44 @@
       status.textContent = alarm ? 'Alarm is sounding on the home page' : 'Ready';
     }
 
-    connectSiren({
-      onAlarm(on) { alarm = on; render(); },
-      onStatus(text) { text ? (status.textContent = text) : render(); },
+    function showLogin(error = '') {
+      savedPassword.set('');
+      $('loginError').textContent = error;
+      $('login').classList.remove('hidden');
+      big.classList.add('hidden');
+      status.classList.add('hidden');
+      $('password').focus();
+    }
+
+    function showButton() {
+      $('login').classList.add('hidden');
+      big.classList.remove('hidden');
+      status.classList.remove('hidden');
+      if (connected) return;
+      connected = true;
+      connectSiren({
+        onAlarm(on) { alarm = on; render(); },
+        onStatus(text) { text ? (status.textContent = text) : render(); },
+      });
+    }
+
+    $('login').onsubmit = async (e) => {
+      e.preventDefault();
+      const password = $('password').value;
+      if (await checkPassword(password)) {
+        savedPassword.set(password);
+        $('password').value = '';
+        showButton();
+      } else {
+        $('loginError').textContent = 'Wrong password';
+        $('password').select();
+      }
+    };
+
+    // Skip the login if no password is set, or this browser already has the right one.
+    getConfig().then(async (config) => {
+      if (!config.needsKey || (savedPassword.get() && (await checkPassword(savedPassword.get())))) showButton();
+      else showLogin();
     });
   </script>
 </body>
