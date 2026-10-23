@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Siren Helper",
+  "version": "1.0",
+  "description": "When the Siren alarm fires, pauses media in other tabs, exits fullscreen and switches to the Siren tab.",
+  "permissions": ["tabs", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost/*", "http://127.0.0.1/*", "https://*.vercel.app/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

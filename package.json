@@ -1,0 +1,12 @@
+{
+  "name": "siren",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Keep the home page open; press the button on /button to loop a sound until it's turned off.",
+  "scripts": {
+    "start": "node --env-file=.env dev-server.js"
+  },
+  "dependencies": {
+    "pusher": "^5.3.4"
+  }
+}
